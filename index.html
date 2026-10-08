@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Red-Green Vision</title>
+<title>Cattle Vision</title>
 <style>
   :root {
     --bg: #0c0e0d;
@@ -212,13 +212,13 @@
 <body>
 
 <header>
-  <h1><span class="r">Red</span>&ndash;<span class="g">Green</span> Vision</h1>
-  <p class="sub">See through a simulated color-blind lens, live from your camera</p>
+  <h1><span class="g">Cattle</span> Vision</h1>
+  <p class="sub">See the world the way a cow does &mdash; live from your camera</p>
 </header>
 
 <div class="stage" id="stage">
   <div class="placeholder" id="placeholder">
-    <p>This turns your camera feed into an approximation of red&ndash;green color blindness, so you can see what the world looks like through that lens. Works best outdoors or near colorful objects.</p>
+    <p>Cattle are dichromats &mdash; they have blue and green cones but no red cone, so reds and oranges blend into the greens around them. This turns your camera feed into an approximation of that view. Works best outdoors or near colorful objects.</p>
     <button class="start-btn" id="startBtn">Turn on camera</button>
   </div>
   <div class="error-box" id="errorBox">
@@ -233,12 +233,6 @@
 </div>
 
 <footer>
-  <div class="modes" id="modes">
-    <button class="mode-btn active" data-mode="deuteranopia">Deuteranopia</button>
-    <button class="mode-btn" data-mode="protanopia">Protanopia</button>
-    <button class="mode-btn" data-mode="deuteranomaly">Deuteranomaly</button>
-    <button class="mode-btn" data-mode="protanomaly">Protanomaly</button>
-  </div>
   <div class="row">
     <label for="intensity">Strength</label>
     <input type="range" id="intensity" min="0" max="100" value="100">
@@ -262,43 +256,26 @@
   const errorText = document.getElementById('errorText');
   const startBtn = document.getElementById('startBtn');
   const retryBtn = document.getElementById('retryBtn');
-  const modesEl = document.getElementById('modes');
   const intensitySlider = document.getElementById('intensity');
   const intensityVal = document.getElementById('intensityVal');
   const splitBtn = document.getElementById('splitBtn');
   const cameraBtn = document.getElementById('cameraBtn');
   const splitLabel = document.getElementById('splitLabel');
 
-  let mode = 'deuteranopia';
   let intensity = 1.0;
   let splitView = false;
   let facingMode = 'environment';
   let stream = null;
   let rafId = null;
 
-  // Color-blindness simulation matrices (sRGB space, Brettel/Machado-style approximations)
-  const MATRICES = {
-    deuteranopia: [
-      0.625, 0.375, 0.0,
-      0.70,  0.30,  0.0,
-      0.0,   0.30,  0.70
-    ],
-    protanopia: [
-      0.567, 0.433, 0.0,
-      0.558, 0.442, 0.0,
-      0.0,   0.242, 0.758
-    ],
-    deuteranomaly: [
-      0.80, 0.20, 0.0,
-      0.258, 0.742, 0.0,
-      0.0,  0.142, 0.858
-    ],
-    protanomaly: [
-      0.817, 0.183, 0.0,
-      0.333, 0.667, 0.0,
-      0.0,   0.125, 0.875
-    ]
-  };
+  // Cattle (bovine) dichromatic vision approximation: no red (L-) cone,
+  // only blue (S-) and green/yellow (M-) cones — modeled on the
+  // protanope simulation matrix, in sRGB space.
+  const CATTLE_MATRIX = [
+    0.567, 0.433, 0.0,
+    0.558, 0.442, 0.0,
+    0.0,   0.242, 0.758
+  ];
 
   function applyMatrix(data, m, amt) {
     const inv = 1 - amt;
@@ -322,7 +299,7 @@
     const procW = w - startX;
     if (procW > 0) {
       const frame = ctx.getImageData(startX, 0, procW, h);
-      applyMatrix(frame.data, MATRICES[mode], intensity);
+      applyMatrix(frame.data, CATTLE_MATRIX, intensity);
       ctx.putImageData(frame, startX, 0);
     }
     if (splitView) {
@@ -382,13 +359,6 @@
 
   startBtn.addEventListener('click', startCamera);
   retryBtn.addEventListener('click', startCamera);
-
-  modesEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('.mode-btn');
-    if (!btn) return;
-    mode = btn.dataset.mode;
-    [...modesEl.children].forEach(b => b.classList.toggle('active', b === btn));
-  });
 
   intensitySlider.addEventListener('input', () => {
     intensity = intensitySlider.value / 100;
