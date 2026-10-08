@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Red-Green Vision</title>
+<style>
+  :root {
+    --bg: #0c0e0d;
+    --panel: #151816;
+    --line: #262b28;
+    --ink: #eef0ee;
+    --dim: #8a928c;
+    --red-ch: #c75c4a;
+    --green-ch: #5a9b6e;
+    --accent: #d8c35a;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 14px 18px 10px;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 0 0 2px;
+  }
+  h1 span.r { color: var(--red-ch); }
+  h1 span.g { color: var(--green-ch); }
+  .sub {
+    font-size: 12.5px;
+    color: var(--dim);
+    margin: 0;
+  }
+
+  .stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  video { display: none; }
+  canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px;
+    text-align: center;
+  }
+  .placeholder p {
+    color: var(--dim);
+    font-size: 13.5px;
+    line-height: 1.5;
+    max-width: 320px;
+    margin: 0;
+  }
+  .start-btn {
+    background: var(--ink);
+    color: #0c0e0d;
+    border: none;
+    padding: 13px 26px;
+    border-radius: 999px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .start-btn:active { opacity: 0.85; }
+
+  .error-box {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 32px;
+    text-align: center;
+  }
+  .error-box p {
+    color: #d88a7a;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 320px;
+    margin: 0;
+  }
+
+  .split-label {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 14px;
+    pointer-events: none;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+  }
+
+  footer {
+    flex-shrink: 0;
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+  }
+
+  .modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mode-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    padding: 9px 4px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mode-btn.active {
+    background: var(--ink);
+    color: #0c0e0d;
+    border-color: var(--ink);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  .row label {
+    font-size: 12px;
+    color: var(--dim);
+    width: 62px;
+    flex-shrink: 0;
+  }
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+  .row .val {
+    font-size: 12px;
+    color: var(--ink);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .switch-wrap {
+    display: flex;
+    gap: 6px;
+  }
+  .flip-btn, .swap-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 8px 12px;
+    border-radius: 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .flip-btn.active { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="r">Red</span>&ndash;<span class="g">Green</span> Vision</h1>
+  <p class="sub">See through a simulated color-blind lens, live from your camera</p>
+</header>
+
+<div class="stage" id="stage">
+  <div class="placeholder" id="placeholder">
+    <p>This turns your camera feed into an approximation of red&ndash;green color blindness, so you can see what the world looks like through that lens. Works best outdoors or near colorful objects.</p>
+    <button class="start-btn" id="startBtn">Turn on camera</button>
+  </div>
+  <div class="error-box" id="errorBox">
+    <p id="errorText"></p>
+    <button class="start-btn" id="retryBtn">Try again</button>
+  </div>
+  <div class="split-label" id="splitLabel" style="display:none;">
+    <span>Normal</span><span>Simulated</span>
+  </div>
+  <video id="video" playsinline muted></video>
+  <canvas id="canvas"></canvas>
+</div>
+
+<footer>
+  <div class="modes" id="modes">
+    <button class="mode-btn active" data-mode="deuteranopia">Deuteranopia</button>
+    <button class="mode-btn" data-mode="protanopia">Protanopia</button>
+    <button class="mode-btn" data-mode="deuteranomaly">Deuteranomaly</button>
+    <button class="mode-btn" data-mode="protanomaly">Protanomaly</button>
+  </div>
+  <div class="row">
+    <label for="intensity">Strength</label>
+    <input type="range" id="intensity" min="0" max="100" value="100">
+    <span class="val" id="intensityVal">100%</span>
+  </div>
+  <div class="toggle-row">
+    <button class="flip-btn" id="splitBtn">Split view</button>
+    <div class="switch-wrap">
+      <button class="swap-btn" id="cameraBtn">Flip camera</button>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const placeholder = document.getElementById('placeholder');
+  const errorBox = document.getElementById('errorBox');
+  const errorText = document.getElementById('errorText');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const modesEl = document.getElementById('modes');
+  const intensitySlider = document.getElementById('intensity');
+  const intensityVal = document.getElementById('intensityVal');
+  const splitBtn = document.getElementById('splitBtn');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const splitLabel = document.getElementById('splitLabel');
+
+  let mode = 'deuteranopia';
+  let intensity = 1.0;
+  let splitView = false;
+  let facingMode = 'environment';
+  let stream = null;
+  let rafId = null;
+
+  // Color-blindness simulation matrices (sRGB space, Brettel/Machado-style approximations)
+  const MATRICES = {
+    deuteranopia: [
+      0.625, 0.375, 0.0,
+      0.70,  0.30,  0.0,
+      0.0,   0.30,  0.70
+    ],
+    protanopia: [
+      0.567, 0.433, 0.0,
+      0.558, 0.442, 0.0,
+      0.0,   0.242, 0.758
+    ],
+    deuteranomaly: [
+      0.80, 0.20, 0.0,
+      0.258, 0.742, 0.0,
+      0.0,  0.142, 0.858
+    ],
+    protanomaly: [
+      0.817, 0.183, 0.0,
+      0.333, 0.667, 0.0,
+      0.0,   0.125, 0.875
+    ]
+  };
+
+  function applyMatrix(data, m, amt) {
+    const inv = 1 - amt;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const nr = m[0]*r + m[1]*g + m[2]*b;
+      const ng = m[3]*r + m[4]*g + m[5]*b;
+      const nb = m[6]*r + m[7]*g + m[8]*b;
+      data[i]   = r*inv + nr*amt;
+      data[i+1] = g*inv + ng*amt;
+      data[i+2] = b*inv + nb*amt;
+    }
+  }
+
+  function draw() {
+    if (!video.videoWidth) { rafId = requestAnimationFrame(draw); return; }
+    const w = canvas.width, h = canvas.height;
+    ctx.drawImage(video, 0, 0, w, h);
+
+    const startX = splitView ? Math.floor(w / 2) : 0;
+    const procW = w - startX;
+    if (procW > 0) {
+      const frame = ctx.getImageData(startX, 0, procW, h);
+      applyMatrix(frame.data, MATRICES[mode], intensity);
+      ctx.putImageData(frame, startX, 0);
+    }
+    if (splitView) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(w/2, 0);
+      ctx.lineTo(w/2, h);
+      ctx.stroke();
+    }
+    rafId = requestAnimationFrame(draw);
+  }
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+  }
+
+  async function startCamera() {
+    stopCamera();
+    placeholder.style.display = 'none';
+    errorBox.style.display = 'none';
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+      resizeCanvas();
+      canvas.style.display = 'block';
+      splitLabel.style.display = splitView ? 'flex' : 'none';
+      cancelAnimationFrame(rafId);
+      draw();
+    } catch (err) {
+      canvas.style.display = 'none';
+      errorBox.style.display = 'flex';
+      if (err.name === 'NotAllowedError') {
+        errorText.textContent = 'Camera access was denied. Allow camera permission for this page in your browser settings, then try again.';
+      } else if (err.name === 'NotFoundError') {
+        errorText.textContent = 'No camera was found on this device.';
+      } else {
+        errorText.textContent = 'Could not access the camera: ' + (err.message || err.name || 'unknown error');
+      }
+    }
+  }
+
+  function stopCamera() {
+    if (rafId) cancelAnimationFrame(rafId);
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+  }
+
+  startBtn.addEventListener('click', startCamera);
+  retryBtn.addEventListener('click', startCamera);
+
+  modesEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    mode = btn.dataset.mode;
+    [...modesEl.children].forEach(b => b.classList.toggle('active', b === btn));
+  });
+
+  intensitySlider.addEventListener('input', () => {
+    intensity = intensitySlider.value / 100;
+    intensityVal.textContent = intensitySlider.value + '%';
+  });
+
+  splitBtn.addEventListener('click', () => {
+    splitView = !splitView;
+    splitBtn.classList.toggle('active', splitView);
+    splitLabel.style.display = (splitView && stream) ? 'flex' : 'none';
+  });
+
+  cameraBtn.addEventListener('click', () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    if (stream) startCamera();
+  });
+
+  window.addEventListener('resize', () => { if (stream) resizeCanvas(); });
+})();
+</script>
+
+</body>
+</html>
