@@ -207,13 +207,26 @@
     cursor: pointer;
   }
   .flip-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .row {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <h1><span class="g">Cattle</span> Vision</h1>
-  <p class="sub">See the world the way a cow does &mdash; live from your camera</p>
+<header class="row">
+  <div class="col">
+    <h1><span class="g">Cattle</span> Vision</h1>
+    <p class="sub">See the world the way a cow does &mdash; live from your camera</p>
+  </div>
+  <img src="assets/KQuiz logo copy.png" alt="KQuiz logo">
 </header>
 
 <div class="stage" id="stage">
